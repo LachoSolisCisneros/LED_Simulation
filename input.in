@@ -1,0 +1,212 @@
+#### This code has been designed and written by Horacio Irán Solís-Cisneros
+##### Lecturer in Software Engineering at Universidad Politécnica de Chiapas
+##### PhD. Student in Tecnológico Nacional de México campus Tuxtla Gutiérrez
+####  This code has been used in https://doi.org/10.3390/nano12234347
+#c-GaN Parameters
+set GaN_Eg=3.3
+set GaN_affinity=3.92
+set GaN_mobility_elec=1000
+set GaN_mobility_hole=28
+set GaN_permittivity=9.7
+set GaN_NC=1.1768e18
+set GaN_NV=4.1589e19
+set GaN_dsn=0.13
+set GaN_dsp=1.40
+#c-AlN Parameters
+set AlN_Eg=5.3
+set AlN_affinity=2.0
+set AlN_mobility_elec=300
+set AlN_mobility_hole=12
+set AlN_permittivity=8.9
+set AlN_NC=1.9619e19
+set AlN_NV=9.7046e19
+set AlN_dsn=0.84
+set AlN_dsp=2.43
+#Bowing parameter
+set bowing=0.391
+#Band offsets
+set dEc=1.32
+set dEv=0.43
+#Fixed Al content in layer for early simulations
+set xcontactP1=0.16
+set xcontactP2=0.50
+set xEBL=0.75
+set xwell=0.55
+set xbarrier=0.70
+set xcontactN=0.70
+#Layers' thickness
+set P_layer1=0.002
+set P_layer2=0.030
+set EBL=0.015
+#set Well=0.0015
+set Barrier=0.0100
+set Well = 0.002
+set N_layer=0.5000
+#Doping levels
+set holes_p1=5e18
+set holes_p2=5e18
+set holes_EBL=2e19
+set elecs1=2e19
+#Number of wells in active region
+set nW=3
+#Some auxiliar variables
+set index=1
+set start1=0
+set end1=0
+set polarScale=1.0
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#S T A R T
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>	
+go atlas simflags="-P 6"
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#STRUCTURE	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#Meshing	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+mesh space.mult=1
+#X-meshing
+x.mesh loc=0.0   spac=0.10
+x.mesh loc=0.25  spac=0.10
+x.mesh loc=0.5   spac=0.05
+x.mesh loc=0.75  spac=0.10
+x.mesh loc=1.0   spac=0.10
+#Y-meshing
+set end1=0
+y.mesh loc=$end1 spac=0.00010		
+set end1=$end1+$P_layer1
+y.mesh loc=$end1 spac=0.0001
+set end1=$end1+$P_layer2
+y.mesh loc=$end1 spac=0.0002
+set end1=$end1+$EBL		
+y.mesh loc=$end1 spac=0.0010
+loop steps=$nW
+	set end1=$end1+$Barrier
+	y.mesh loc=$end1 spac=0.0005
+	set end1=$end1+$Well
+	y.mesh loc=$end1 spac=0.0001		
+l.end
+set end1=$end1+$Barrier
+y.mesh loc=$end1 spac=0.0005
+set end1=$end1+$N_layer
+y.mesh loc=$end1 spac=0.0250
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#LAYER THICKNESS AND COMPOSITION	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#P-Type superlattice		
+set end1 = 0
+set start1 = $end1
+set end1=$end1+$P_layer1
+set lastRegion = 1
+region number = 1 x.min=0 x.max=1 y.min=$start1 y.max=$end1 material=AlGaN compx.top=$xcontactP1 compx.bottom=$xcontactP1 name=p-contact1
+set start1=$end1
+set end1=$end1+$P_layer2
+set lastRegion = $lastRegion+1
+region number=2 x.min=0 x.max=1 y.min=$start1 y.max=$end1 material=AlGaN compx.top=$xcontactP2 compx.bottom=$xcontactP2 name=p-contact2			
+#P-Type EBL
+set start1=$end1
+set end1=$end1+$EBL
+set lastRegion = $lastRegion+1
+region number=3 x.min=0 x.max=1 y.min=0+$start1 y.max=$end1 material=AlGaN compx.top=$xEBL compx.bottom=$xEBL name=EBL
+#Active region MQW		
+loop steps=$nW	
+	set start1=$end1			
+	set lastRegion = $lastRegion+1
+	set end1=$end1+$Barrier
+	region number = $lastRegion x.min=0 x.max=1 y.min=$start1 y.max=$end1 material=AlGaN compx.top=$xbarrier compx.bottom=$xbarrier name=barrier
+	set start1=$end1
+	set end1=$end1+$Well
+	set lastRegion = $lastRegion+1
+	region number = $lastRegion x.min=0 x.max=1 y.min=$start1 y.max=$end1 material=AlGaN compx.top=$xwell compx.bottom=$xwell name=well led qwell
+l.end
+#N-type layer
+set start1=$end1	
+set end1=$end1+$Barrier
+set lastRegion = $lastRegion+1
+region number = $lastRegion x.min=0 x.max=1 y.min=$start1 y.max=$end1 material=AlGaN compx.top=$xbarrier compx.bottom=$xbarrier name=barrier
+set start1=$end1	
+set end1=$end1+$N_layer
+set lastRegion = $lastRegion+1
+region number = $lastRegion x.min=0 x.max=1 y.min=$start1 y.max=$end1 material=AlGaN x.comp=$xcontactN name=n-contact
+#Electrodes
+electrode name=anode   top
+electrode name=cathode bottom
+#Doping
+doping region = 1 uniform p.type conc=$holes_p1
+doping region = 2 uniform p.type conc=$holes_p2	
+# Active region is un-doped
+doping region = 3 uniform p.type conc=$holes_EBL		
+doping region = $lastRegion uniform n.type conc=$elecs1
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#MODELS	
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#Materials		
+material material=GaN taun0=1e-9 taup0=1e-9 copt=1.1e-8 augn=1.0e-34 augp=1.0e-34
+material material=AlN taun0=1e-9 taup0=1e-9 copt=1.1e-8 augn=1.0e-34 augp=1.0e-34
+material material=AlGaN taun0=1e-9 taup0=1e-9 copt=1.1e-8 augn=1.0e-34 augp=1.0e-34
+material material=AlGaN real.index=2.1		
+# Lorentz Broaden factor
+material well.gamma0=1e-2
+#Capture escape time
+material well.taup=1e-12 well.taun=1e-12
+#Electron and hole activation energies
+material edb=0.030 eab=0.370
+#Band offset ratio for electron affinity calculation
+material material=AlGaN align=$dEc/($dEc+$dEv)
+material material=AlGaN eg1300=$GaN_Eg eg2300=$AlN_Eg  eg12bow=$bowing
+material material=GaN eg300=$GaN_Eg epsilon=$GaN_permittivity affinity=$GaN_affinity \
+		mun=$GaN_mobility_elec mup=$GaN_mobility_hole nc300=$GaN_NC nv300=$GaN_NV m.dsn=$GaN_dsn m.dsp=$GaN_dsp
+material material=AlN eg300=$AlN_Eg epsilon=$AlN_permittivity affinity=$AlN_affinity \
+		mun=$AlN_mobility_elec mup=$AlN_mobility_hole nc300=$AlN_NC nv300=$AlN_NV m.dsn=$AlN_dsn m.dsp=$AlN_dsp
+#Enable polarization calculations
+models calc.strain polarization polar.scale=$polarScale
+# Statisticals and recombination
+models fermi incomplete srh auger optr
+# Recombination for the QW regions
+models name=well spontaneous 
+# Bands
+models k.p wz.three
+#models k.p zb.two
+#Enable capture scape-model
+models well.capt well.inplane 
+models well.selfcon well.cnbs=1 well.vnbs=3
+models well.field
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#METHODS AND OUTPUTS
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#----------------------------------------------------------------
+output con.band val.band band.param charge polar.charge e.mobility h.mobility u.srh u.radiative u.auger permi j.total
+solve init
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+save outf=UVCLED_$'index'_V0_Well$'Well'_P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.str		
+method climit=1e-4 maxtrap=10	
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+solve prev
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+##PROBES TO OBTAIN	
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+probe name="Recombination" recombination integrate
+probe name="Radiative" radiative integrate rname=well
+##SOLUTION INTO LOG FILE
+log outf=UVCLED_$'index'_IV_Well$'Well'P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.log
+##----------------------------------------------------------------
+##FORWARD BIAS
+solve vstep=0.050 vfinal=0.5 name=anode
+solve vstep=0.100 vfinal=1.5 name=anode	
+solve vstep=0.100 vfinal=3.5 name=anode
+solve vstep=0.050 vfinal=5.0 name=anode
+save spectrum=UVCLED_$'index'_IV5_Well$'Well'P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.spc lmin=0.250 lmax=0.300 nsample=300
+save outf=UVCLED_$'index'_5V_Well$'Well'_P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.str	
+##----------------------------------------------------------------
+solve vanode=5.5 name=anode
+save spectrum=UVCLED_$'index'_IV5.5_Well$'Well'P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.spc lmin=0.250 lmax=0.300 nsample=300		
+##----------------------------------------------------------------
+solve vanode=6.0 name=anode
+save outf=UVCLED_$'index'_6V_Well$'Well'_P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.str
+save spectrum=UVCLED_$'index'_IV6.0_Well$'Well'_P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.spc lmin=0.250 lmax=0.300 nsample=300
+##----------------------------------------------------------------
+solve vanode=6.5 name=anode
+save spectrum=UVCLED_$'index'_IV6.5_Well$'Well'P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.spc lmin=0.250 lmax=0.300 nsample=300
+##----------------------------------------------------------------
+solve vanode=7.0 name=anode
+save outf=UVCLED_$'index'_6V_Well$'Well'_P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.str
+save spectrum=UVCLED_$'index'_IV7.0_Well$'Well'P1'$xcontactP1'_P2$'xcontactP2'_EBL'$xEBL'_QW$'xwell'_QB$'xbarrier'_N$'xcontactN'_Polarization_$'polarScale'.spc lmin=0.250 lmax=0.300 nsample=300
